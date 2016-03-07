@@ -1,0 +1,10 @@
+The project is structured as follows:
+
+1.library.py constains the functions I defined to solve the task
+2.script.py takes as input the coordinates' files and outputs the gps position of the analyst. It has to be run as follows:
+
+python script.py input/spree input/brandeburg input/satellite
+
+3.viz.py produces the visualizations and storest them in /viz. it has to be run as follows:
+
+python viz.py input/spree input/brandeburg input/satellite
