@@ -2,21 +2,44 @@ import numpy as np
 import os
 from scipy.optimize import minimize
 from scipy.stats import norm
+import math
 
+###COORDINATES TRANSFORMATIONS####
 
-#transformation from latitude-longitude to XY
-def to_xy(p):
+#transformation from latitude-longitude to xy coordinates in the plane
+def latlon2xy(p):
     SW_lat = 52.464011 
     SW_lon = 13.274099
-    return [(p[1]-SW_lon)*np.cos(SW_lat * np.pi / 180)*111.323,(p[0]-SW_lat)*111.323]
-
-#transformation from XY to latitude-longitude
-def to_latlon(p):
+    return [(p[1]-SW_lon)*np.cos(SW_lat * np.pi / 180.)*111.323,(p[0]-SW_lat)*111.323]
+#transforms xy coordinates in the plane in latitude-longitude coordinates
+def xy2latlon(p):
     SW_lat = 52.464011 
     SW_lon = 13.274099
-    lon=(p[0]/111.323)*(1/np.cos(SW_lat * np.pi / 180))+SW_lon
+    lon=(p[0]/111.323)*(1/np.cos(SW_lat * np.pi / 180.))+SW_lon
     lat=(p[1]/111.323)+SW_lat
     return [lat,lon]
+#transforms cartesian coordinates in the 3-d space to latitude-longitude coordinates, given the oiunt lies in the positive orthant
+def xyz2latlon(p):
+    R=6371
+    x=p[0]
+    y=p[1]
+    z=p[2]
+    lat=math.degrees(math.asin(z/R))
+    lon=math.degrees(math.atan(y/x))
+    return np.array([lat,lon])
+#transforms latitude-longitude coordinates in the cartesian coordinates in the 3-d space
+def latlon2xyz(lat,lon):
+    R=6371
+    lat=math.radians(lat)
+    lon=math.radians(lon)
+    return R*np.array([np.cos(lat)*np.cos(lon),np.cos(lat)*np.sin(lon),np.sin(lat)])
+
+###END OF COORDINATES TRANSFORMATIONS####
+
+#returns the angle, in radians, between two vectors a,b, of any dimension
+def angle(a,b):
+    return math.acos(float(np.dot(a,b))/(np.linalg.norm(a)*np.linalg.norm(b)))   
+
 
 #objective function to be minimized to determine the standard deviation of the probability distribution wrt
 #the distance from the Spree river
@@ -33,12 +56,12 @@ def lognorm_pdf(x,mu,sigma):
     return 1/(x*sigma*np.sqrt(2*np.pi))*np.exp(-.5*((np.log(x)-mu)/sigma)**2)
 
 #Probability density functions based on the distance
-def brand_distr(d,loc_brand,scale_brand):
-    return lognorm_pdf(d,loc_brand,scale_brand)
-def spree_distr(d,sd_spree):
-    return norm.pdf(d,0,sd_spree)
-def sat_distr(d,sd_sat):
-    return norm.pdf(d,0,sd_sat)
+def brand_distr(d,loc,scale):
+    return lognorm_pdf(d,loc,scale)
+def spree_distr(d,sd):
+    return norm.pdf(d,0,sd)
+def sat_distr(d,sd):
+    return norm.pdf(d,0,sd)
 
 #returns the distance of point from line passing through line_point0 and line_point1
 def point_line_distance(point,line_point0,line_point1):
@@ -53,7 +76,7 @@ def point_line_distance(point,line_point0,line_point1):
     c=y0*(x1-x0)+x0*(y0-y1)
     return np.abs(a*x+b*y+c)/np.sqrt(a**2+b**2)
     
-#returns the normal projection of point onto the line passing through line_poit0 and line_point1
+#returns the normal projection of point onto the line passing through line_point0 and line_point1
 def normal_projection_point_to_line(point, line_point0,line_point1):
     x=point[0]
     y=point[1]
@@ -85,8 +108,7 @@ def spree_distance(point,spree_km):
 
 #returns the distance of point from the satellite path
 def sat_distance(point,satellite_km):
-    return point_segment_distance(point,satellite_km[0],satellite_km[1])
-
+    return min([point_segment_distance(point,satellite_km[i],satellite_km[i+1]) for i in range(len(satellite_km)-1)])
 #returns the distance of a point from the Brandebourg gate
 def brand_distance(point,brandeburg_km):
     point=np.array(point)

@@ -17,43 +17,64 @@ path_to_spree_file=sys.argv[1]
 path_to_brandeburg_file=sys.argv[2]
 path_to_satellite_file=sys.argv[3]
 
-#read the data from files
-spree_f=open(path_to_spree_file,'r')
+#earth radius
+R=6371
+
+###READ DATA FROM FILES
 spree=[]
-for x in spree_f:
+brandeburg=[]
+satellite=[]
+
+for x in open(path_to_spree_file,'r'):
     x=x.split(',')
     x=[float(xx) for xx in x]
     spree.append(x)
-spree=np.array(spree)
 
-brandeburg_f=open(path_to_brandeburg_file,'r')
-brandeburg=[]
-for x in brandeburg_f:
+for x in open(path_to_brandeburg_file,'r'):
     x=x.split(',')
     x=[float(xx) for xx in x]
     brandeburg.append(x)
-brandeburg=np.array(brandeburg[0])
 
-satellite_f=open(path_to_satellite_file,'r')
-satellite=[]
-for x in satellite_f:
+for x in open(path_to_satellite_file,'r'):
     x=x.split(',')
     x=[float(xx) for xx in x]
     satellite.append(x)
+
+spree=np.array(spree)
 satellite=np.array(satellite)
+brandeburg=np.array(brandeburg[0])
+
+###COORDINATE SYSTEM CHANGE
+spree_km=np.array([latlon2xy(x) for x in spree])
+brandeburg_km=np.array(latlon2xy(brandeburg))
+
+#get the great circle
+#get 3-d vectors corresponding to the paths'extremes
+a=latlon2xyz(satellite[0][0],satellite[0][1])
+b=latlon2xyz(satellite[1][0],satellite[1][1])
+#get the angle between them
+max_angle=angle(a,b)
+#sample the angle parameter
+alphas=[i*max_angle/50. for i in range(51)]
+#get the vector tangent to the sphere and orthogonal to b
+w=np.cross(np.cross(b,a),b)
+#normalize vectors
+w_n=w/np.linalg.norm(w)
+b_n=b/np.linalg.norm(b)
+#great circle in cartesian 3-d coordinates
+circle_xyz=[R*b_n*np.cos(alpha)+R*w_n*np.sin(alpha) for alpha in alphas]
+#great circle in lat-lon coordinates
+circle_latlon=[xyz2latlon(P) for P in circle_xyz]
+#great circle in the xy plane
+satellite_km=np.array([latlon2xy(P) for P in circle_latlon])
 
 
-#change the coordinate system
-spree_km=np.array([to_xy(x) for x in spree])
-satellite_km=np.array([to_xy(x) for x in satellite])
-brandeburg_km=np.array(to_xy(brandeburg))
-
+###DERIVE DISTRIBUTIONS PARAMETERS
 #get the sandard deviations of the normal distributions
 res_spree = minimize(ob_spree,1, method='nelder-mead',options={'xtol': 1e-50, 'disp': False})   
 res_sat = minimize(ob_sat,1, method='nelder-mead',options={'xtol': 1e-50, 'disp': False})   
 sd_spree=res_spree.x[0]
 sd_sat=res_sat.x[0]
-
 #get location and scale of the lognormal distribution
 mean=4.7
 mode=3.877
@@ -62,6 +83,7 @@ lmode=np.log(mode)
 scale=np.sqrt(2/3.*(lmean-lmode))
 loc=lmean-.5*scale**2
 
+###Start visualizations
 plt.plot(spree_km[:,0],spree_km[:,1],marker='x', label='Spree',lw=4)
 plt.plot(satellite_km[:,0],satellite_km[:,1],label='Satellite',marker='x',lw=4)
 plt.scatter([brandeburg_km[0]],[brandeburg_km[1]],marker='o',s=80,label='Brandebourg gate',color='red')
@@ -209,4 +231,15 @@ plt.xticks(size=25)
 plt.yticks(size=25)
 plt.gcf().set_size_inches(18, 10)
 plt.savefig('viz/Joint_probability_3d.png')
+plt.gcf().clear()
+
+d=[1000*point_line_distance(c,satellite_km[0],satellite_km[-1]) for c in satellite_km]
+plt.plot(d,marker='x',label='error')
+
+plt.xlabel('sampled point',fontsize=15)
+plt.ylabel('meters to the straight line',fontsize=15)
+plt.xticks(size=15)
+plt.yticks(size=15)
+plt.show()
+plt.savefig('viz/error_straight_line_vs_great_circle.png')
 plt.gcf().clear()
