@@ -1,6 +1,5 @@
 #run as python viz.py path_to_spree_coordinates path_to_brandeburg_coordinates path_to_satellite_coordinates
 import sys
-import numpy as np
 import os
 import matplotlib.pyplot as plt
 from scipy.stats import norm
