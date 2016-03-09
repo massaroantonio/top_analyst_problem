@@ -102,13 +102,10 @@ def point_segment_distance(point,segment_point0,segment_point1):
     else:
         return point_line_distance(point,segment_point0,segment_point1)
 
-#returns the distance of point from the river spree
-def spree_distance(point,spree_km):
-    return min([point_segment_distance(point,spree_km[i],spree_km[i+1]) for i in range(len(spree_km)-1)])
+#returns the distance of point from piecewise linear region object
+def distance(point,obj):
+    return min([point_segment_distance(point,obj[i],obj[i+1]) for i in range(len(obj)-1)])
 
-#returns the distance of point from the satellite path
-def sat_distance(point,satellite_km):
-    return min([point_segment_distance(point,satellite_km[i],satellite_km[i+1]) for i in range(len(satellite_km)-1)])
 #returns the distance of a point from the Brandebourg gate
 def brand_distance(point,brandeburg_km):
     point=np.array(point)
@@ -116,4 +113,4 @@ def brand_distance(point,brandeburg_km):
 
 #joint probability to be optimized
 def objective(point,brandeburg_km,spree_km,satellite_km,sd_spree,sd_sat,loc,scale):
-	return -brand_distr(brand_distance(point,brandeburg_km),loc,scale)*spree_distr(spree_distance(point,spree_km),sd_spree)*sat_distr(sat_distance(point,satellite_km),sd_sat)
+	return -brand_distr(brand_distance(point,brandeburg_km),loc,scale)*spree_distr(distance(point,spree_km),sd_spree)*sat_distr(distance(point,satellite_km),sd_sat)
