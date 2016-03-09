@@ -9,6 +9,8 @@ The project is structured as follows:
 
 	python viz.py input/spree input/brandeburg input/satellite
 
+the input files are in the 'input/' folder. They need to be in the format they are
+
 the libraries that need to be installed are:
 	sys,os,matplotlib,scipy,mpl_toolkits,numpy,math
 
